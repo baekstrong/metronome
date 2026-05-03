@@ -8,7 +8,7 @@ const countdownValue = document.querySelector("#countdownValue");
 const runRemainingValue = document.querySelector("#runRemainingValue");
 const playedValue = document.querySelector("#playedValue");
 const startStopButton = document.querySelector("#startStopButton");
-const previewButton = document.querySelector("#previewButton");
+const resetPlayedButton = document.querySelector("#resetPlayedButton");
 const statusText = document.querySelector("#statusText");
 
 const INTERVAL_STORAGE_KEY = "interval-metronome-seconds";
@@ -79,10 +79,10 @@ startStopButton.addEventListener("click", async () => {
   startMetronome();
 });
 
-previewButton.addEventListener("click", async () => {
-  await ensureAudioReady();
-  playTick();
-  setStatus("미리 듣기 재생");
+resetPlayedButton.addEventListener("click", () => {
+  tickCount = 0;
+  renderPlayed();
+  setStatus("Played 카운트 초기화됨");
 });
 
 window.addEventListener("visibilitychange", () => {
