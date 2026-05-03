@@ -1,0 +1,22 @@
+{
+  "name": "메트로놈",
+  "short_name": "메트로놈",
+  "start_url": "/metronome/",
+  "display": "standalone",
+  "background_color": "#16233a",
+  "theme_color": "#16233a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
