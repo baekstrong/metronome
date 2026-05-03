@@ -2,7 +2,10 @@ const intervalSlider = document.querySelector("#intervalSlider");
 const intervalValue = document.querySelector("#intervalValue");
 const volumeSlider = document.querySelector("#volumeSlider");
 const volumeValue = document.querySelector("#volumeValue");
+const durationSlider = document.querySelector("#durationSlider");
+const durationValue = document.querySelector("#durationValue");
 const countdownValue = document.querySelector("#countdownValue");
+const runRemainingValue = document.querySelector("#runRemainingValue");
 const playedValue = document.querySelector("#playedValue");
 const startStopButton = document.querySelector("#startStopButton");
 const previewButton = document.querySelector("#previewButton");
@@ -10,25 +13,32 @@ const statusText = document.querySelector("#statusText");
 
 const INTERVAL_STORAGE_KEY = "interval-metronome-seconds";
 const VOLUME_STORAGE_KEY = "interval-metronome-volume";
+const DURATION_STORAGE_KEY = "interval-metronome-duration";
 const MIN_INTERVAL = 0.5;
 const DEFAULT_INTERVAL = Number(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? 5);
 const DEFAULT_VOLUME = Number(localStorage.getItem(VOLUME_STORAGE_KEY) ?? 50);
+const DEFAULT_DURATION = Number(localStorage.getItem(DURATION_STORAGE_KEY) ?? 300);
 
 let audioContext = null;
 let masterGain = null;
 let intervalSeconds = clampInterval(DEFAULT_INTERVAL);
 let volumePercent = clampVolume(DEFAULT_VOLUME);
+let durationSeconds = clampDuration(DEFAULT_DURATION);
 let isRunning = false;
 let tickCount = 0;
 let nextTickAt = 0;
+let stopAt = 0;
 let timeoutId = null;
 let rafId = null;
 
 intervalSlider.value = String(intervalSeconds);
 volumeSlider.value = String(volumePercent);
+durationSlider.value = String(durationSeconds);
 renderInterval();
 renderVolume();
+renderDuration();
 renderCountdown(intervalSeconds);
+renderRunRemaining(durationSeconds);
 renderPlayed();
 setStatus("브라우저에서 사용할 준비가 됐습니다.");
 
@@ -47,6 +57,16 @@ volumeSlider.addEventListener("input", () => {
   localStorage.setItem(VOLUME_STORAGE_KEY, String(volumePercent));
   applyVolume();
   renderVolume();
+});
+
+durationSlider.addEventListener("input", () => {
+  durationSeconds = clampDuration(Number(durationSlider.value));
+  localStorage.setItem(DURATION_STORAGE_KEY, String(durationSeconds));
+  renderDuration();
+
+  if (!isRunning) {
+    renderRunRemaining(durationSeconds);
+  }
 });
 
 startStopButton.addEventListener("click", async () => {
@@ -81,6 +101,10 @@ function clampVolume(value) {
   return Math.min(100, Math.max(0, Number.isFinite(value) ? value : 50));
 }
 
+function clampDuration(value) {
+  return Math.min(1800, Math.max(10, Number.isFinite(value) ? value : 300));
+}
+
 async function ensureAudioReady() {
   if (!audioContext) {
     audioContext = new AudioContext();
@@ -104,11 +128,13 @@ function startMetronome() {
   isRunning = true;
   tickCount = 0;
   nextTickAt = performance.now() + intervalSeconds * 1000;
+  stopAt = performance.now() + durationSeconds * 1000;
 
   renderPlayed();
   renderCountdown(intervalSeconds);
+  renderRunRemaining(durationSeconds);
   startStopButton.textContent = "Stop";
-  setStatus(`${intervalSeconds.toFixed(1)}초 간격으로 재생 중`);
+  setStatus(`${formatClock(durationSeconds)} 동안 ${intervalSeconds.toFixed(1)}초 간격으로 재생 중`);
 
   scheduleNextTick();
   startCountdownLoop();
@@ -128,8 +154,10 @@ function stopMetronome(resetCount = true) {
   }
 
   nextTickAt = 0;
+  stopAt = 0;
   startStopButton.textContent = "Start";
   renderCountdown(intervalSeconds);
+  renderRunRemaining(durationSeconds);
 
   if (resetCount) {
     setStatus("정지됨");
@@ -143,6 +171,15 @@ function scheduleNextTick() {
 
   const delay = Math.max(0, nextTickAt - performance.now());
   timeoutId = window.setTimeout(() => {
+    if (!isRunning) {
+      return;
+    }
+
+    if (performance.now() >= stopAt) {
+      finishMetronome();
+      return;
+    }
+
     playTick();
     tickCount += 1;
     renderPlayed();
@@ -158,12 +195,26 @@ function startCountdownLoop() {
       return;
     }
 
+    const runRemaining = Math.max(0, (stopAt - performance.now()) / 1000);
+    renderRunRemaining(runRemaining);
+
+    if (runRemaining <= 0) {
+      finishMetronome();
+      return;
+    }
+
     const remaining = Math.max(0, (nextTickAt - performance.now()) / 1000);
     renderCountdown(remaining);
     rafId = requestAnimationFrame(loop);
   };
 
   rafId = requestAnimationFrame(loop);
+}
+
+function finishMetronome() {
+  stopMetronome(false);
+  renderRunRemaining(0);
+  setStatus("설정한 시간이 끝나서 자동 정지됨");
 }
 
 function playTick() {
@@ -215,8 +266,16 @@ function renderVolume() {
   volumeValue.textContent = String(volumePercent);
 }
 
+function renderDuration() {
+  durationValue.textContent = formatClock(durationSeconds);
+}
+
 function renderCountdown(value) {
   countdownValue.textContent = value.toFixed(1);
+}
+
+function renderRunRemaining(value) {
+  runRemainingValue.textContent = formatClock(value);
 }
 
 function renderPlayed() {
@@ -225,4 +284,11 @@ function renderPlayed() {
 
 function setStatus(message) {
   statusText.textContent = message;
+}
+
+function formatClock(value) {
+  const safeValue = Math.max(0, Math.ceil(value));
+  const minutes = Math.floor(safeValue / 60);
+  const seconds = safeValue % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

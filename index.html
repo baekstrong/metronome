@@ -61,10 +61,34 @@
           </div>
         </div>
 
+        <div class="duration-panel">
+          <div class="duration-header">
+            <span class="label">Run Time</span>
+            <span id="durationValue" class="duration-value">05:00</span>
+          </div>
+          <input
+            id="durationSlider"
+            class="slider"
+            type="range"
+            min="10"
+            max="1800"
+            step="10"
+            value="300"
+          >
+          <div class="slider-scale">
+            <span>00:10</span>
+            <span>30:00</span>
+          </div>
+        </div>
+
         <div class="stats">
           <article class="stat-card">
             <p class="stat-label">Next Tick</p>
             <p><span id="countdownValue" class="stat-value">5.0</span><span class="stat-unit">sec</span></p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-label">Run Left</p>
+            <p><span id="runRemainingValue" class="stat-value">05:00</span></p>
           </article>
           <article class="stat-card">
             <p class="stat-label">Played</p>
