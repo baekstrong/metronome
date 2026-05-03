@@ -1,24 +1,38 @@
 # Interval Metronome
 
-`BPM` 대신 `초 단위 간격`으로 반복음을 재생하는 SwiftUI 메트로놈 앱입니다.
+`BPM` 대신 `초 단위 간격`으로 반복음을 재생하는 정적 웹 앱입니다.
 
-## MVP 기능
+## 기능
 
 - 0.5초부터 30초까지 간격 설정
 - 시작 / 정지
 - 다음 소리까지 남은 시간 표시
 - 누적 재생 횟수 표시
 - 미리 듣기 버튼
+- 브라우저 `localStorage` 기반 간격 저장
 
-## 구조
+## 파일 구조
 
-- `Sources/MetronomeCore`
-  - 간격 기반 스케줄 계산 로직
-- `Sources/IntervalMetronomeApp`
-  - SwiftUI 화면
-  - 재생 상태 관리
-  - 짧은 비프 톤 생성 및 재생
+- `index.html`
+  - 앱 마크업
+- `styles.css`
+  - 반응형 UI 스타일
+- `app.js`
+  - Web Audio API 기반 비프 사운드
+  - 초 단위 스케줄링 로직
 
-## 참고
+## GitHub Pages 배포
 
-현재 저장소는 Swift Package 기반으로 구성되어 있습니다. 로컬 환경에 Xcode 전체가 설치되어 있지 않으면 앱 실행 검증은 제한될 수 있습니다.
+1. GitHub 저장소의 `Settings`로 이동
+2. 왼쪽 메뉴에서 `Pages` 선택
+3. `Build and deployment`에서 `Deploy from a branch` 선택
+4. 브랜치를 `main`, 폴더를 `/ (root)`로 선택
+5. 저장 후 몇 분 기다리면 사이트가 배포됨
+
+예상 주소:
+
+`https://baekstrong.github.io/metronome/`
+
+## 로컬 실행
+
+정적 파일만 사용하므로 브라우저에서 `index.html`을 바로 열어도 동작합니다.
