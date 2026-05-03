@@ -85,6 +85,7 @@ async function ensureAudioReady() {
   if (!audioContext) {
     audioContext = new AudioContext();
     masterGain = audioContext.createGain();
+    masterGain.gain.value = 1;
     masterGain.connect(audioContext.destination);
   }
 
@@ -173,12 +174,13 @@ function playTick() {
   const now = audioContext.currentTime;
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
+  const peakGain = getPeakGain();
 
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(1320, now);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(1.0, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(peakGain, now + 0.005);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
 
   oscillator.connect(gain);
@@ -193,7 +195,16 @@ function applyVolume() {
     return;
   }
 
-  masterGain.gain.value = volumePercent / 100;
+  masterGain.gain.value = 1;
+}
+
+function getPeakGain() {
+  if (volumePercent <= 0) {
+    return 0.0001;
+  }
+
+  const normalized = volumePercent / 100;
+  return 0.03 + normalized * normalized * 1.6;
 }
 
 function renderInterval() {
