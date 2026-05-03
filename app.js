@@ -67,7 +67,7 @@ async function ensureAudioReady() {
   if (!audioContext) {
     audioContext = new AudioContext();
     masterGain = audioContext.createGain();
-    masterGain.gain.value = 0.42;
+    masterGain.gain.value = 0.9;
     masterGain.connect(audioContext.destination);
   }
 
@@ -159,7 +159,7 @@ function playTick() {
   oscillator.frequency.setValueAtTime(1320, now);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.5, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(1.0, now + 0.005);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
 
   oscillator.connect(gain);
