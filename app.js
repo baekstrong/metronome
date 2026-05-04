@@ -255,7 +255,7 @@ function getPeakGain() {
   }
 
   const normalized = volumePercent / 100;
-  return 0.32 + normalized * normalized * 25.6;
+  return 1.28 + normalized * normalized * 102.4;
 }
 
 function renderInterval() {
