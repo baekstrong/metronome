@@ -73,18 +73,18 @@
             <span class="label">Run Time</span>
             <span id="durationValue" class="duration-value">05:00</span>
           </div>
-          <input
-            id="durationSlider"
-            class="slider"
-            type="range"
-            min="10"
-            max="1800"
-            step="10"
-            value="300"
-          >
-          <div class="slider-scale">
-            <span>00:10</span>
-            <span>30:00</span>
+          <div class="wheel-picker" aria-label="Run time picker">
+            <div class="wheel-cell">
+              <div id="minColumn" class="wheel-column" tabindex="0" aria-label="Minutes"></div>
+              <span class="wheel-cell-unit">min</span>
+            </div>
+            <div class="wheel-cell">
+              <div id="secColumn" class="wheel-column" tabindex="0" aria-label="Seconds"></div>
+              <span class="wheel-cell-unit">sec</span>
+            </div>
+            <div class="wheel-highlight" aria-hidden="true"></div>
+            <div class="wheel-fade wheel-fade-top" aria-hidden="true"></div>
+            <div class="wheel-fade wheel-fade-bottom" aria-hidden="true"></div>
           </div>
         </div>
 
