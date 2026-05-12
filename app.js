@@ -92,7 +92,7 @@ document.addEventListener("visibilitychange", () => {
 
   if (isRunning) {
     acquireWakeLock();
-    if (audioContext && audioContext.state === "suspended") {
+    if (audioContext && audioContext.state !== "running") {
       audioContext.resume().catch(() => {});
     }
     setStatus(`${intervalSeconds.toFixed(1)}초 간격으로 재생 중`);
@@ -112,6 +112,21 @@ function clampDuration(value) {
 }
 
 async function ensureAudioReady() {
+  if (audioContext) {
+    if (audioContext.state !== "running") {
+      try {
+        await audioContext.resume();
+      } catch {}
+    }
+    if (audioContext.state !== "running") {
+      try {
+        await audioContext.close();
+      } catch {}
+      audioContext = null;
+      masterGain = null;
+    }
+  }
+
   if (!audioContext) {
     audioContext = new AudioContext();
     masterGain = audioContext.createGain();
@@ -121,8 +136,10 @@ async function ensureAudioReady() {
 
   applyVolume();
 
-  if (audioContext.state === "suspended") {
-    await audioContext.resume();
+  if (audioContext.state !== "running") {
+    try {
+      await audioContext.resume();
+    } catch {}
   }
 
   setStatus("오디오 엔진 준비 완료");
@@ -188,7 +205,7 @@ function scheduleNextTick() {
       return;
     }
 
-    if (audioContext && audioContext.state === "suspended") {
+    if (audioContext && audioContext.state !== "running") {
       try {
         await audioContext.resume();
       } catch {}
