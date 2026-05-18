@@ -1,4 +1,4 @@
-const intervalSlider = document.querySelector("#intervalSlider");
+const intervalColumn = document.querySelector("#intervalColumn");
 const intervalValue = document.querySelector("#intervalValue");
 const volumeSlider = document.querySelector("#volumeSlider");
 const volumeValue = document.querySelector("#volumeValue");
@@ -15,7 +15,8 @@ const statusText = document.querySelector("#statusText");
 const INTERVAL_STORAGE_KEY = "interval-metronome-seconds";
 const VOLUME_STORAGE_KEY = "interval-metronome-volume";
 const DURATION_STORAGE_KEY = "interval-metronome-duration";
-const MIN_INTERVAL = 0.5;
+const MIN_INTERVAL = 1;
+const MAX_INTERVAL = 60;
 const DEFAULT_INTERVAL = Number(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? 5);
 const DEFAULT_VOLUME = Number(localStorage.getItem(VOLUME_STORAGE_KEY) ?? 50);
 const DEFAULT_DURATION = Number(localStorage.getItem(DURATION_STORAGE_KEY) ?? 300);
@@ -39,8 +40,8 @@ let timeoutId = null;
 let rafId = null;
 let wakeLock = null;
 
-intervalSlider.value = String(intervalSeconds);
 volumeSlider.value = String(volumePercent);
+setupIntervalWheel();
 setupDurationWheel();
 renderInterval();
 renderVolume();
@@ -49,16 +50,6 @@ renderCountdown(intervalSeconds);
 renderRunRemaining(durationSeconds);
 renderPlayed();
 setStatus("브라우저에서 사용할 준비가 됐습니다.");
-
-intervalSlider.addEventListener("input", () => {
-  intervalSeconds = clampInterval(Number(intervalSlider.value));
-  localStorage.setItem(INTERVAL_STORAGE_KEY, String(intervalSeconds));
-  renderInterval();
-
-  if (!isRunning) {
-    renderCountdown(intervalSeconds);
-  }
-});
 
 volumeSlider.addEventListener("input", () => {
   volumePercent = clampVolume(Number(volumeSlider.value));
@@ -100,7 +91,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function clampInterval(value) {
-  return Math.min(30, Math.max(MIN_INTERVAL, Number.isFinite(value) ? value : 5));
+  const rounded = Math.round(Number.isFinite(value) ? value : 5);
+  return Math.min(MAX_INTERVAL, Math.max(MIN_INTERVAL, rounded));
 }
 
 function clampVolume(value) {
@@ -293,7 +285,7 @@ function getPeakGain() {
 }
 
 function renderInterval() {
-  intervalValue.textContent = intervalSeconds.toFixed(intervalSeconds < 10 ? 1 : 0);
+  intervalValue.textContent = String(intervalSeconds);
 }
 
 function renderVolume() {
@@ -327,12 +319,22 @@ function formatClock(value) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-let minWheelTimer = null;
-let secWheelTimer = null;
+const wheelSettleTimers = new WeakMap();
+
+function setupIntervalWheel() {
+  buildWheelColumn(intervalColumn, MIN_INTERVAL, MAX_INTERVAL);
+
+  requestAnimationFrame(() => {
+    setWheelScroll(intervalColumn, intervalSeconds);
+    updateSelectedItem(intervalColumn);
+  });
+
+  attachWheelListener(intervalColumn, "interval");
+}
 
 function setupDurationWheel() {
-  buildWheelColumn(minColumn, MAX_MINUTE);
-  buildWheelColumn(secColumn, MAX_SECOND);
+  buildWheelColumn(minColumn, 0, MAX_MINUTE);
+  buildWheelColumn(secColumn, 0, MAX_SECOND);
 
   const initialMin = Math.min(MAX_MINUTE, Math.floor(durationSeconds / 60));
   const initialSec = Math.min(MAX_SECOND, durationSeconds - initialMin * 60);
@@ -348,18 +350,23 @@ function setupDurationWheel() {
   attachWheelListener(secColumn, "sec");
 }
 
-function buildWheelColumn(column, max) {
+function buildWheelColumn(column, min, max) {
+  column.dataset.min = String(min);
   const fragment = document.createDocumentFragment();
   for (let i = 0; i < WHEEL_PAD_COUNT; i += 1) {
     fragment.appendChild(createWheelItem("", true));
   }
-  for (let i = 0; i <= max; i += 1) {
-    fragment.appendChild(createWheelItem(String(i).padStart(2, "0"), false, i));
+  for (let v = min; v <= max; v += 1) {
+    fragment.appendChild(createWheelItem(String(v).padStart(2, "0"), false, v));
   }
   for (let i = 0; i < WHEEL_PAD_COUNT; i += 1) {
     fragment.appendChild(createWheelItem("", true));
   }
   column.appendChild(fragment);
+}
+
+function wheelMin(column) {
+  return Number(column.dataset.min || 0);
 }
 
 function createWheelItem(text, isSpacer, value) {
@@ -373,15 +380,18 @@ function createWheelItem(text, isSpacer, value) {
 }
 
 function setWheelScroll(column, value) {
-  column.scrollTop = value * WHEEL_ITEM_HEIGHT;
+  column.scrollTop = (value - wheelMin(column)) * WHEEL_ITEM_HEIGHT;
 }
 
 function smoothScrollWheel(column, value) {
-  column.scrollTo({ top: value * WHEEL_ITEM_HEIGHT, behavior: "smooth" });
+  column.scrollTo({
+    top: (value - wheelMin(column)) * WHEEL_ITEM_HEIGHT,
+    behavior: "smooth",
+  });
 }
 
 function getWheelValue(column) {
-  return Math.round(column.scrollTop / WHEEL_ITEM_HEIGHT);
+  return Math.round(column.scrollTop / WHEEL_ITEM_HEIGHT) + wheelMin(column);
 }
 
 function updateSelectedItem(column) {
@@ -401,20 +411,23 @@ function updateSelectedItem(column) {
 function attachWheelListener(column, kind) {
   column.addEventListener("scroll", () => {
     updateSelectedItem(column);
-    const timerRef = kind === "min" ? minWheelTimer : secWheelTimer;
-    if (timerRef) {
-      clearTimeout(timerRef);
+    const prev = wheelSettleTimers.get(column);
+    if (prev) {
+      clearTimeout(prev);
     }
-    const next = window.setTimeout(() => onWheelSettle(kind), 130);
-    if (kind === "min") {
-      minWheelTimer = next;
-    } else {
-      secWheelTimer = next;
-    }
+    wheelSettleTimers.set(
+      column,
+      window.setTimeout(() => onWheelSettle(kind), 130)
+    );
   });
 }
 
 function onWheelSettle(kind) {
+  if (kind === "interval") {
+    onIntervalSettle();
+    return;
+  }
+
   const rawMin = clampWheel(getWheelValue(minColumn), MAX_MINUTE);
   const rawSec = clampWheel(getWheelValue(secColumn), MAX_SECOND);
   let min = rawMin;
@@ -447,6 +460,23 @@ function onWheelSettle(kind) {
 
   if (!isRunning) {
     renderRunRemaining(durationSeconds);
+  }
+}
+
+function onIntervalSettle() {
+  const raw = getWheelValue(intervalColumn);
+  const value = clampInterval(raw);
+
+  if (value !== raw) {
+    smoothScrollWheel(intervalColumn, value);
+  }
+
+  intervalSeconds = value;
+  localStorage.setItem(INTERVAL_STORAGE_KEY, String(intervalSeconds));
+  renderInterval();
+
+  if (!isRunning) {
+    renderCountdown(intervalSeconds);
   }
 }
 

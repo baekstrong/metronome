@@ -29,21 +29,17 @@
         <div class="interval-panel">
           <div class="interval-header">
             <span class="label">Interval</span>
-            <span id="intervalValue" class="interval-value">5.0</span>
+            <span id="intervalValue" class="interval-value">5</span>
             <span class="unit">sec</span>
           </div>
-          <input
-            id="intervalSlider"
-            class="slider"
-            type="range"
-            min="0.5"
-            max="30"
-            step="0.5"
-            value="5"
-          >
-          <div class="slider-scale">
-            <span>0.5s</span>
-            <span>30s</span>
+          <div class="wheel-picker" aria-label="Interval picker">
+            <div class="wheel-cell">
+              <div id="intervalColumn" class="wheel-column" tabindex="0" aria-label="Interval seconds"></div>
+              <span class="wheel-cell-unit">sec</span>
+            </div>
+            <div class="wheel-highlight" aria-hidden="true"></div>
+            <div class="wheel-fade wheel-fade-top" aria-hidden="true"></div>
+            <div class="wheel-fade wheel-fade-bottom" aria-hidden="true"></div>
           </div>
         </div>
 
